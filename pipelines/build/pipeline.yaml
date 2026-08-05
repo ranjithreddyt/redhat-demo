@@ -1,0 +1,71 @@
+# CI pipeline: clone source from GitHub, build image, push to the dev Quay repo.
+# Runs entirely on OpenShift Pipelines (Tekton) - no external CI runner involved.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: nginx-build
+  namespace: app-dev
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+      default: main
+    - name: image-repo
+      type: string
+      description: "Quay repo to push to, e.g. quay-host/nginx-demo/nginx-app-dev"
+  workspaces:
+    - name: shared-workspace
+    - name: dockerconfig
+    - name: git-credentials
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+
+    - name: build-and-push
+      runAfter: [fetch-source]
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: dockerconfig
+          workspace: dockerconfig
+      params:
+        - name: IMAGE
+          value: "$(params.image-repo):$(tasks.fetch-source.results.commit)"
+
+    - name: update-gitops-dev
+      runAfter: [build-and-push]
+      taskRef:
+        name: git-cli
+        kind: ClusterTask
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: basic-auth
+          workspace: git-credentials
+      params:
+        - name: GIT_USER_NAME
+          value: "tekton-ci-bot"
+        - name: GIT_USER_EMAIL
+          value: "ci-bot@users.noreply.github.com"
+        - name: GIT_SCRIPT
+          value: |
+            cd "$(workspaces.source.path)"
+            sed -i "s#tag: .*#tag: \"$(tasks.fetch-source.results.commit)\"#" chart/values-dev.yaml
+            git add chart/values-dev.yaml
+            git commit -m "ci: deploy nginx-app-dev@$(tasks.fetch-source.results.commit)"
+            git push origin HEAD:$(params.git-revision)

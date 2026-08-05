@@ -1,0 +1,44 @@
+# Pipelines-as-Code definition: this file living under .tekton/ in the repo
+# is what OpenShift Pipelines' PAC controller watches for. Once a GitHub
+# webhook is registered against this repo (Settings -> Webhooks, pointed at
+# the PAC controller route, or via the `tkn pac` CLI / GitHub App), every
+# push to main creates a PipelineRun automatically - no manual `oc create`.
+#
+# Not wired live for the demo (needs webhook setup on the GitHub side); the
+# same nginx-build Pipeline is triggered manually via
+# pipelines/build/pipelinerun.yaml for reliability. This file documents the
+# production end-state: push to GitHub is the only human action required.
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: nginx-build-
+  namespace: app-dev
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  pipelineRef:
+    name: nginx-build
+  serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: "{{ repo_url }}"
+    - name: git-revision
+      value: "{{ revision }}"
+    - name: image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: dockerconfig
+      secret:
+        secretName: quay-dev-pusher
+    - name: git-credentials
+      secret:
+        secretName: git-credentials

@@ -1,0 +1,46 @@
+# Shared defaults across all environments.
+# Environment-specific overrides live in values-<env>.yaml.
+
+replicaCount: 1
+
+image:
+  repository: ""   # set per environment
+  tag: ""           # bumped by CI (dev) or promotion pipeline (stage/prod)
+  pullPolicy: Always
+
+imagePullSecrets: []  # set per environment
+
+service:
+  port: 8080
+
+route:
+  enabled: true
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /
+    initialDelaySeconds: 3
+    periodSeconds: 5
+
+securityContext:
+  runAsNonRoot: true
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault

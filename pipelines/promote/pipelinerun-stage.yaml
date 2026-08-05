@@ -1,0 +1,41 @@
+# Promotion: dev -> stage. Trigger manually once the dev image has been
+# validated (e.g. after a smoke test). Replace <COMMIT_SHA> with the tag
+# produced by the build pipeline (visible in its PipelineRun logs / the
+# nginx-build-deploy Route in app-dev).
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: nginx-promote-stage-
+  namespace: app-dev
+spec:
+  pipelineRef:
+    name: nginx-promote
+  serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: https://github.com/ranjithreddyt/redhat-demo.git
+    - name: git-revision
+      value: main
+    - name: source-image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
+    - name: dest-image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-stage
+    - name: image-tag
+      value: "<COMMIT_SHA>"
+    - name: values-file
+      value: chart/values-stage.yaml
+    - name: target-env
+      value: stage
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: images-url
+      emptyDir: {}
+    - name: git-credentials
+      secret:
+        secretName: git-credentials

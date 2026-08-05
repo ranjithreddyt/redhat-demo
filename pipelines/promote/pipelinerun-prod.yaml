@@ -1,0 +1,42 @@
+# Promotion: stage -> prod. This is the gated step: for the demo, "the gate"
+# is that only a named approver applies this PipelineRun by hand, after
+# reviewing stage. Production-hardening note: replace with a Tekton
+# ManualApprovalGate (operator.tekton.dev, installed on this cluster) or a
+# required-reviewer PR on values-prod.yaml once this goes past demo stage.
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: nginx-promote-prod-
+  namespace: app-dev
+spec:
+  pipelineRef:
+    name: nginx-promote
+  serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: https://github.com/ranjithreddyt/redhat-demo.git
+    - name: git-revision
+      value: main
+    - name: source-image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-stage
+    - name: dest-image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-prod
+    - name: image-tag
+      value: "<COMMIT_SHA>"
+    - name: values-file
+      value: chart/values-prod.yaml
+    - name: target-env
+      value: prod
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: images-url
+      emptyDir: {}
+    - name: git-credentials
+      secret:
+        secretName: git-credentials

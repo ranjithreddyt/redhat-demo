@@ -1,0 +1,33 @@
+# Manual trigger for the build pipeline (production path: a GitHub webhook /
+# Pipelines-as-Code EventListener fires this automatically on push to main -
+# see .tekton/push.yaml for that definition).
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: nginx-build-
+  namespace: app-dev
+spec:
+  pipelineRef:
+    name: nginx-build
+  serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: https://github.com/ranjithreddyt/redhat-demo.git
+    - name: git-revision
+      value: main
+    - name: image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: dockerconfig
+      secret:
+        secretName: quay-dev-pusher
+    - name: git-credentials
+      secret:
+        secretName: git-credentials

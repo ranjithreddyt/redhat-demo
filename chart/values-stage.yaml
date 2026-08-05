@@ -1,0 +1,8 @@
+replicaCount: 2
+
+image:
+  repository: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-stage
+  tag: "placeholder"   # bumped by the promotion pipeline, dev -> stage
+
+imagePullSecrets:
+  - name: quay-promoter-pull

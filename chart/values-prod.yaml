@@ -1,0 +1,16 @@
+replicaCount: 3
+
+image:
+  repository: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-prod
+  tag: "placeholder"   # bumped by the promotion pipeline, stage -> prod, behind manual approval
+
+imagePullSecrets:
+  - name: quay-promoter-pull
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
