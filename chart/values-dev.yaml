@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
-  tag: "placeholder"   # bumped by CI on every merge to main
+  tag: "f77c059e9cb39a47f032e569c5f6573aa95c1edb"
 
 imagePullSecrets:
   - name: quay-dev-pusher
