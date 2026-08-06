@@ -20,7 +20,8 @@ metadata:
 spec:
   pipelineRef:
     name: nginx-build
-  serviceAccountName: pipeline
+  taskRunTemplate:
+    serviceAccountName: pipeline
   params:
     - name: git-url
       value: "{{ repo_url }}"

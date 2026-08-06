@@ -76,6 +76,7 @@ spec:
           value: "ci-bot@users.noreply.github.com"
         - name: GIT_SCRIPT
           value: |
+            git config --global --add safe.directory "$(workspaces.source.path)"
             cd "$(workspaces.source.path)"
             sed -i "s#tag: .*#tag: \"$(params.image-tag)\"#" $(params.values-file)
             git add $(params.values-file)

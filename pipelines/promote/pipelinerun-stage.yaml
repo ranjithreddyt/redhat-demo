@@ -10,7 +10,8 @@ metadata:
 spec:
   pipelineRef:
     name: nginx-promote
-  serviceAccountName: pipeline
+  taskRunTemplate:
+    serviceAccountName: pipeline
   params:
     - name: git-url
       value: https://github.com/ranjithreddyt/redhat-demo.git
