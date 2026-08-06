@@ -1,14 +1,12 @@
-# Shared defaults across all environments.
-# Environment-specific overrides live in values-<env>.yaml.
-
 replicaCount: 1
 
 image:
-  repository: ""   # set per environment
-  tag: ""           # bumped by CI (dev) or promotion pipeline (stage/prod)
+  repository: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
+  tag: "f77c059e9cb39a47f032e569c5f6573aa95c1edb"   # bumped automatically by the pipeline on every push
   pullPolicy: Always
 
-imagePullSecrets: []  # set per environment
+imagePullSecrets:
+  - name: quay-dev-pusher
 
 service:
   port: 8080

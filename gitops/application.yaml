@@ -1,0 +1,22 @@
+# Single application, single environment. ArgoCD watches chart/ directly;
+# the pipeline bumps chart/values.yaml on every deploy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nginx-app-dev
+  namespace: janus-argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ranjithreddyt/redhat-demo.git
+    targetRevision: main
+    path: chart
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app-dev
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=false

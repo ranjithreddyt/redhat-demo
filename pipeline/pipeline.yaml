@@ -1,9 +1,11 @@
-# CI pipeline: clone source from GitHub, build image, push to the dev Quay repo.
-# Runs entirely on OpenShift Pipelines (Tekton) - no external CI runner involved.
+# Single pipeline, single environment: on every push to main, clone,
+# build, push the image to Quay, then bump chart/values.yaml and push
+# back to Git. ArgoCD watches chart/ and syncs automatically - no
+# manual promotion step, no second pipeline.
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
-  name: nginx-build
+  name: nginx-deploy
   namespace: app-dev
 spec:
   params:
@@ -47,7 +49,7 @@ spec:
         - name: IMAGE
           value: "$(params.image-repo):$(tasks.fetch-source.results.commit)"
 
-    - name: update-gitops-dev
+    - name: update-gitops
       runAfter: [build-and-push]
       taskRef:
         name: git-cli
@@ -66,7 +68,7 @@ spec:
           value: |
             git config --global --add safe.directory "$(workspaces.source.path)"
             cd "$(workspaces.source.path)"
-            sed -i "s#tag: .*#tag: \"$(tasks.fetch-source.results.commit)\"#" chart/values-dev.yaml
-            git add chart/values-dev.yaml
-            git commit -m "ci: deploy nginx-app-dev@$(tasks.fetch-source.results.commit)"
+            sed -i "s#tag: .*#tag: \"$(tasks.fetch-source.results.commit)\"#" chart/values.yaml
+            git add chart/values.yaml
+            git commit -m "deploy: nginx-app-dev@$(tasks.fetch-source.results.commit)"
             git push origin HEAD:$(params.git-revision)
