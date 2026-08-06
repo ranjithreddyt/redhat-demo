@@ -12,7 +12,14 @@ metadata:
     pipelinesascode.tekton.dev/max-keep-runs: "5"
 spec:
   pipelineRef:
-    name: nginx-deploy
+    resolver: git
+    params:
+      - name: url
+        value: "{{ repo_url }}"
+      - name: revision
+        value: "{{ revision }}"
+      - name: pathInRepo
+        value: pipeline/pipeline.yaml
   taskRunTemplate:
     serviceAccountName: pipeline
   params:
