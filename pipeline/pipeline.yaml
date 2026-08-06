@@ -71,4 +71,4 @@ spec:
             sed -i "s#tag: .*#tag: \"$(tasks.fetch-source.results.commit)\"#" chart/values.yaml
             git add chart/values.yaml
             git commit -m "deploy: nginx-app-dev@$(tasks.fetch-source.results.commit)"
-            git push origin HEAD:$(params.git-revision)
+            git push origin HEAD:main
