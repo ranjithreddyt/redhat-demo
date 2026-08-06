@@ -1,0 +1,38 @@
+# Pipelines-as-Code definition: this file is what the PAC controller reads
+# on every GitHub webhook event for this repo. A push to main creates a
+# PipelineRun automatically - no manual `oc create`.
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: nginx-deploy-
+  namespace: app-dev
+  annotations:
+    pipelinesascode.tekton.dev/on-event: "[push]"
+    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    pipelinesascode.tekton.dev/max-keep-runs: "5"
+spec:
+  pipelineRef:
+    name: nginx-deploy
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  params:
+    - name: git-url
+      value: "{{ repo_url }}"
+    - name: git-revision
+      value: "{{ revision }}"
+    - name: image-repo
+      value: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
+  workspaces:
+    - name: shared-workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: dockerconfig
+      secret:
+        secretName: quay-dev-pusher
+    - name: git-credentials
+      secret:
+        secretName: git-credentials
