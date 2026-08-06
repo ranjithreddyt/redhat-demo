@@ -1,7 +1,7 @@
 # Prod is intentionally NOT automated - no `syncPolicy.automated` block.
 # A human clicks Sync in the ArgoCD UI (or `argocd app sync nginx-app-prod`)
 # after the gated promotion pipeline lands the new tag in values-prod.yaml.
-# This is the human-in-the-loop control for production.
+# Same chart, same version (0.1.0) as dev/stage - only the values differ.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -9,12 +9,17 @@ metadata:
   namespace: janus-argocd
 spec:
   project: default
-  source:
-    repoURL: https://github.com/ranjithreddyt/redhat-demo.git
-    targetRevision: main
-    path: chart
-    helm:
-      valueFiles: [values.yaml, values-prod.yaml]
+  sources:
+    - repoURL: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo
+      chart: nginx-app
+      targetRevision: 0.1.0
+      helm:
+        valueFiles:
+          - $values/chart/values.yaml
+          - $values/chart/values-prod.yaml
+    - repoURL: https://github.com/ranjithreddyt/redhat-demo.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: app-prod

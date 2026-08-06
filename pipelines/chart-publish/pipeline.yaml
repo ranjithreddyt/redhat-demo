@@ -1,0 +1,52 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: nginx-chart-publish
+  namespace: app-dev
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+      default: main
+    - name: quay-host
+      type: string
+    - name: quay-org
+      type: string
+      default: nginx-demo
+    - name: chart-version
+      type: string
+  workspaces:
+    - name: shared-workspace
+    - name: registry-auth
+  tasks:
+    - name: fetch-source
+      taskRef:
+        name: git-clone
+        kind: ClusterTask
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+      params:
+        - name: url
+          value: $(params.git-url)
+        - name: revision
+          value: $(params.git-revision)
+
+    - name: publish-chart
+      runAfter: [fetch-source]
+      taskRef:
+        name: helm-chart-publish
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: registry-auth
+          workspace: registry-auth
+      params:
+        - name: quay-host
+          value: $(params.quay-host)
+        - name: quay-org
+          value: $(params.quay-org)
+        - name: chart-version
+          value: $(params.chart-version)

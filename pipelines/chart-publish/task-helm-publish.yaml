@@ -1,0 +1,53 @@
+# Packages chart/ as a versioned OCI Helm artifact and pushes it to Quay.
+# Runs only when the chart itself changes (template/values-schema edits) -
+# NOT on every app image build. This is what keeps chart version and app
+# image version decoupled: one chart version, shared unchanged across
+# dev/stage/prod, referenced by exact semver from every ArgoCD Application.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: helm-chart-publish
+  namespace: app-dev
+spec:
+  params:
+    - name: quay-host
+      type: string
+    - name: quay-org
+      type: string
+    - name: chart-path
+      type: string
+      default: chart
+    - name: chart-version
+      type: string
+      description: "Semver to publish, e.g. 0.1.0. Must match chart/Chart.yaml's version."
+  workspaces:
+    - name: source
+    - name: registry-auth
+      description: "Secret with 'username' and 'password' keys for the chart_publisher robot"
+  steps:
+    - name: package-and-push
+      image: docker.io/alpinelinux/helm:3.14.4
+      workingDir: $(workspaces.source.path)
+      env:
+        - name: HELM_REGISTRY_USER
+          valueFrom:
+            secretKeyRef:
+              name: quay-chart-publisher
+              key: username
+        - name: HELM_REGISTRY_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: quay-chart-publisher
+              key: password
+      script: |
+        #!/bin/sh
+        set -eu
+        helm registry login "$(params.quay-host)" \
+          --username "${HELM_REGISTRY_USER}" \
+          --password "${HELM_REGISTRY_PASSWORD}"
+        helm package "$(params.chart-path)" \
+          --version "$(params.chart-version)" \
+          --app-version "$(params.chart-version)" \
+          --destination /tmp/chart-out
+        helm push "/tmp/chart-out/nginx-app-$(params.chart-version).tgz" \
+          "oci://$(params.quay-host)/$(params.quay-org)"

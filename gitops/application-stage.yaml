@@ -5,12 +5,17 @@ metadata:
   namespace: janus-argocd
 spec:
   project: default
-  source:
-    repoURL: https://github.com/ranjithreddyt/redhat-demo.git
-    targetRevision: main
-    path: chart
-    helm:
-      valueFiles: [values.yaml, values-stage.yaml]
+  sources:
+    - repoURL: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo
+      chart: nginx-app
+      targetRevision: 0.1.0
+      helm:
+        valueFiles:
+          - $values/chart/values.yaml
+          - $values/chart/values-stage.yaml
+    - repoURL: https://github.com/ranjithreddyt/redhat-demo.git
+      targetRevision: main
+      ref: values
   destination:
     server: https://kubernetes.default.svc
     namespace: app-stage

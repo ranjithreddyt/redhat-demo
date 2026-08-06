@@ -21,12 +21,20 @@ Registry: `quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com`
 
 - Org: `nginx-demo`
 - Repos (one per environment, private): `nginx-app-dev`, `nginx-app-stage`, `nginx-app-prod`
+- Chart repo (one, shared across all environments): `nginx-app` — holds the
+  Helm chart as a versioned OCI artifact (`oci://quay-host/nginx-demo/nginx-app:0.1.0`).
+  Same chart version, unchanged, referenced by every environment's ArgoCD
+  `Application` — only the values file layered on top differs per env.
 - Robot accounts, least-privilege:
   - `nginx-demo+dev_pusher` — **write** on `nginx-app-dev` only. Used by the
     build pipeline's `pipeline` ServiceAccount in `app-dev`.
   - `nginx-demo+promoter` — **read** on `nginx-app-dev`, **write** on
     `nginx-app-stage` and `nginx-app-prod`. Used by the promotion pipeline.
     Cannot push to dev — a leaked promoter credential can't poison the build.
+  - `nginx-demo+chart_publisher` — **write** on `nginx-app` (the chart repo)
+    only. Used by the chart-publish pipeline, and also by ArgoCD to pull the
+    chart (write implies read; kept as one robot since there's only one
+    chart repo and one version to protect).
 
 Created via the Quay API (`/api/v1/organization/`, `/api/v1/repository`,
 `/api/v1/organization/nginx-demo/robots/<name>`,
@@ -42,6 +50,9 @@ sandbox's `quayadmin` superuser token.
 | `quay-promoter-pull` | `app-stage` | `dockerconfigjson` | `promoter` robot creds (read-only use) | Deployment `imagePullSecrets` in stage |
 | `quay-promoter-pull` | `app-prod` | `dockerconfigjson` | `promoter` robot creds (read-only use) | Deployment `imagePullSecrets` in prod |
 | `git-credentials` | `app-dev` | Opaque (`.git-credentials` + `.gitconfig`) | GitHub PAT for write-back commits | `git-cli` ClusterTask `basic-auth` workspace, in both pipelines |
+| `quay-chart-publisher` | `app-dev` | Opaque (`username` + `password`) | `chart_publisher` robot creds | chart-publish pipeline's `helm registry login` |
+| `quay-nginx-chart-repo` | `janus-argocd` | Opaque, labeled `argocd.argoproj.io/secret-type: repository` | `chart_publisher` robot creds, OCI repo URL | ArgoCD's Helm OCI chart pull for all 3 `Application` sources |
+| `redhat-demo-git-repo` | `janus-argocd` | Opaque, labeled `argocd.argoproj.io/secret-type: repository` | GitHub PAT | ArgoCD's git clone of the private `redhat-demo` repo (the `ref: values` source in each multi-source `Application`) |
 
 **Annotation required for Tekton auto-injection:** `quay-dev-pusher` and
 `quay-promoter-push` are annotated `tekton.dev/docker-0: <quay-host>` so
