@@ -2,7 +2,7 @@
 
 *OpenShift-native CI/CD & GitOps · single environment (dev) · client demo*
 
-**Source:** GitHub (client's existing tool, unchanged) · **CI/CD:** one Tekton pipeline (OpenShift Pipelines) · **Signing:** Tekton Chains + Rekor · **Registry:** Quay Enterprise (in-cluster) · **Delivery:** ArgoCD (OpenShift GitOps) · **Monitoring:** built-in Prometheus/Alertmanager
+**Source:** GitHub (client's existing tool, unchanged) · **CI/CD:** one Tekton pipeline (OpenShift Pipelines) · **Security:** RHACS + Tekton Chains + Rekor · **Registry:** Quay Enterprise (in-cluster) · **Delivery:** ArgoCD (OpenShift GitOps) · **Monitoring:** built-in Prometheus/Alertmanager
 
 ---
 
@@ -50,6 +50,22 @@ The same pipeline bumps the image tag in `chart/values.yaml` and pushes that com
 
 ### Phase 5 — Running (OpenShift)
 The application runs under the `restricted` SCC — non-root, no privilege escalation — behind a TLS-edge Route. **Prometheus**, already scraping the cluster, shows pod health and resource usage with zero extra configuration.
+
+---
+
+## Red Hat / OpenShift components, explained
+
+Everything to the right of "push to GitHub" runs on the OpenShift platform itself — this is the core of the pitch. Here's what each piece is and why it's there:
+
+| Component | What it is | Why it's here |
+|---|---|---|
+| **OpenShift Pipelines** | Red Hat's supported distribution of Tekton — Kubernetes-native CI/CD. Pipelines run as pods, defined as Kubernetes objects, with no separate CI server to run or license. | Replaces the CI server. Build logic runs *on* the platform being deployed to, using the same RBAC, the same audit trail, the same cluster the app lives on. |
+| **Tekton Chains** | A controller that watches pipeline runs and automatically signs any produced container image, generating a cryptographic attestation of how it was built. | Supply-chain security, automatically. No developer ever runs `cosign` by hand, and no signing keys are managed manually. |
+| **Rekor** | An immutable, public transparency log (part of the sigstore project) that every signature gets recorded to. | Makes signing *provable*, not just claimed — anyone can verify an image's signature was logged at build time, not forged later. |
+| **RHACS (Red Hat Advanced Cluster Security / StackRox)** | Red Hat's own security platform — image scanning, deploy-time policy enforcement (admission control), and runtime threat detection, all in one product already licensed for this cluster. | Used here as a build-time gate (`roxctl image check`) so a policy violation fails the pipeline before an image ever reaches production — not just a report generated after the fact. |
+| **Quay Enterprise** | Red Hat's container registry product, running in-cluster rather than as an external SaaS. Includes its own vulnerability scanner (Clair) and fine-grained, per-repository robot-account access control. | Keeps the registry — and the credentials needed to push to it — inside the platform boundary. Least-privilege robot accounts mean the pipeline never holds more registry access than it needs. |
+| **OpenShift GitOps (ArgoCD)** | Red Hat's supported distribution of ArgoCD. Continuously compares what's declared in Git against what's actually running, and reconciles the difference. | This is what makes Git the single source of truth: no `oc apply` in the deployment path at all. Manual changes to the live cluster get automatically reverted back to match Git. |
+| **OpenShift cluster monitoring (Prometheus/Alertmanager)** | Built into every OpenShift cluster - not something installed separately for this demo. | Pod health, CPU, and memory are visible for any workload the moment it's deployed, with zero extra configuration. |
 
 ---
 
