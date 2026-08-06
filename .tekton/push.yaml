@@ -7,8 +7,14 @@ metadata:
   generateName: nginx-deploy-
   namespace: app-dev
   annotations:
-    pipelinesascode.tekton.dev/on-event: "[push]"
-    pipelinesascode.tekton.dev/on-target-branch: "[main]"
+    # CEL expression replaces on-event/on-target-branch when present, so it
+    # must encode both the event/branch match AND the loop-prevention check:
+    # skip any push whose commit message was written by this pipeline's own
+    # write-back step (prefixed "deploy:") - otherwise every automated
+    # commit re-triggers itself indefinitely.
+    pipelinesascode.tekton.dev/on-cel-expression: >-
+      event == "push" && target_branch == "refs/heads/main" &&
+      !body.head_commit.message.startsWith("deploy:")
     pipelinesascode.tekton.dev/max-keep-runs: "5"
 spec:
   pipelineRef:
