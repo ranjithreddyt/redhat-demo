@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: quay-8rnsl.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com/nginx-demo/nginx-app-dev
-  tag: "5c76aca0140388c8290fc5e93337db53e89390a5"
+  tag: "e98bd87a46f9550a1ad4b4e9d7e0726908f14157"
   pullPolicy: Always
 
 imagePullSecrets:
