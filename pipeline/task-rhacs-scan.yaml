@@ -1,0 +1,35 @@
+# Explicit, visible security gate using Red Hat Advanced Cluster Security
+# (RHACS/StackRox) - already deployed and licensed on this cluster, not a
+# third-party tool. `roxctl image check` evaluates the image against RHACS'
+# configured security policies (CVE severity, image composition, etc.) and
+# fails the build if a policy with build-time enforcement is violated -
+# CVEs get caught here, not discovered in production.
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: rhacs-scan
+  namespace: app-dev
+spec:
+  params:
+    - name: image
+      type: string
+      description: "Full image reference to scan, e.g. quay-host/org/repo:tag"
+    - name: central-endpoint
+      type: string
+      default: "central-stackrox.apps.cluster-8rnsl.8rnsl.sandbox2169.opentlc.com:443"
+  steps:
+    - name: check
+      image: registry.redhat.io/advanced-cluster-security/rhacs-roxctl-rhel8@sha256:b3b498320cfcbf06da095f2427814d7f157ccec870383085be733ad7b6e6ccba
+      env:
+        - name: ROX_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: rhacs-api-token
+              key: ROX_API_TOKEN
+      script: |
+        #!/bin/sh
+        set -eu
+        roxctl image check \
+          --image "$(params.image)" \
+          -e "$(params.central-endpoint)" \
+          --insecure-skip-tls-verify

@@ -8,7 +8,14 @@ metadata:
   namespace: app-dev
 spec:
   pipelineRef:
-    name: nginx-deploy
+    resolver: git
+    params:
+      - name: url
+        value: https://github.com/ranjithreddyt/redhat-demo.git
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: pipeline/pipeline.yaml
   taskRunTemplate:
     serviceAccountName: pipeline
   params:
